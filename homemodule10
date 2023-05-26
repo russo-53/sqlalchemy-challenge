@@ -1,0 +1,169 @@
+
+
+
+# Import the dependencies.
+import numpy as np
+import pandas as pd
+import datetime as dt
+
+# Python SQL toolkit and Object Relational Mapper
+import sqlalchemy
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, func
+
+# 1. import Flask
+from flask import Flask, jsonify
+
+
+#################################################
+# Database Setup
+#################################################
+engine = create_engine("sqlite:///Resources/hawaii.sqlite")
+
+# reflect an existing database into a new model
+Base = automap_base()
+# reflect the tables
+Base.prepare(engine, reflect=True)
+
+# Save references to each table
+Measurement = Base.classes.measurement
+Station = Base.classes.station
+
+# Create our session (link) from Python to the DB
+
+session = Session(engine)
+#################################################
+# Flask Setup
+#################################################
+
+
+app = Flask(__name__)
+
+# All the available routes 
+
+@app.route("/")
+def home():
+    """List all available api routes."""
+    return (f"Avalable Routes:<br/>"
+            f"/api/v1.0/precipitation<br/>"
+            f"/api/v1.0/stations<br/>"
+            f"/api/v1.0/tobs<br/>"
+            f"/api/v1.0/<start><br/>"
+            f"/api/v1.0/<start>/<end><br>")
+
+# Route to precipitation
+
+@app.route("/api/v1.0/precipitation")
+def precipitation():
+           session = Session(engine)
+           """Return a list for date and precipitation"""
+           year_ago = dt.date(2017,8,23) - dt.timedelta(days=365)
+           results = session.query(*columns).filter(Measurement.date >= year_ago).all()
+           session.close()
+           
+           all_dates = []
+           for date, pctp in results:
+               date_all_dict = {}
+               date_all_dict["date"] = date
+               date_all_dict["precipitation"] = prcp
+               all_dates.append(date_all_dict)
+           return jsonify(all_dates)
+
+# Route to the stations
+   
+
+@app.route("/api/v1.0/stations")
+def station():
+    session = Session(engine)
+    """Return a list for stations"""
+    results_1 = session.query(Station.station, Station.id).all()
+    session.close()
+    
+    all_stations = []
+    for station, id in results_1:
+        station_dict = {}
+        station_dict["station"] = station
+        station_dict["id"] = id
+        all_stations.append(station_dict)
+    return jsonify(all_stations)
+
+# Temperature observations of the most-active station for the previous year of data
+
+
+@app.route("/api/v1.0/tobs")
+def tobs():
+    session = Session(engine)
+    
+    """Return a list for tobs"""
+    results_2 = session.query(Measurement.tobs, Measurement.date).filter(Measurement.date>=year_ago).filter(Measurement.station=="USC00519281").all()
+   
+    session.close()
+    
+    all_tobs = []
+    for tobs, date in results_2:
+        tobs_dict = {}
+        tobs_dict["tobs"] = tobs
+        tobs_dict["date"] = date
+        all_tobs.append(tobs_dict)
+    return jsonify(all_tobs)
+
+# Return a JSON list of the minimum temperature, the average temperature, and the maximum temperature for a specified start range
+
+
+    
+@app.route("/api/v1.0/<start>")
+def start(start):
+    session = Session(engine)
+    
+    """Return the temperatures for the start date"""
+    results_3 = session.query(Measurement.date, \
+                              func.min(Measurement.tobs), \
+                              func.avg(Measurement.tobs), \
+                              func.max(Measurement.tobs)).filter(Measurement.date>=start).all()
+    session.close()
+    results_3_list = []
+    for date, tmin, tavg, tmax in results_3:
+        results_3_dict = {}
+        results_3_dict["date"] = date
+        results_3_dict["TMIN"] = tmin
+        results_3_dict["TAVG"] = tavg
+        results_3_dict["TMAX"] = tmax
+        results_3_list.append(results_3_dict)
+    return jsonify(results_3_list)
+
+
+# Return a JSON list of the minimum temperature, the average temperature, and the maximum temperature for a specified start-end range
+
+@app.route("/api/v1.0/<start>/<end>")
+def start_end(start,end):
+    session = Session(engine)
+    
+    """Return the temperature for the start_end dates"""
+    results_4 = session.query(Measurement.date, \
+                              func.min(Measurement.tobs), \
+                              func.avg(Measurement.tobs), \
+                              func.max(Measurement.tobs)).filter(Measurement.date>=start, Measurement.date<=end).all()
+    session.close()
+    for date, tmin, tavg, tmax in results_4:
+        results_4_dict = {}
+        results_4_dict["date"] = date
+        results_4_dict["TMIN"] = tmin
+        results_4_dict["TAVG"] = tavg
+        results_4_dict["TMAX"] = tmax
+        results_4_list.append(results_3_dict)
+    return jsonify(results_4_list)
+    
+      
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+
+
+
+
